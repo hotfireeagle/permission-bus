@@ -144,7 +144,7 @@ func (p *permissionBus) GetMenuTree() []PermissionConfigItem {
 		childList := make([]PermissionConfigItem, 0)
 		for _, item := range c.Children {
 			copyItem := dfs(item)
-			if copyItem.Spec == "" {
+			if copyItem.Spec != "" {
 				childList = append(childList, copyItem)
 			}
 		}
@@ -154,7 +154,10 @@ func (p *permissionBus) GetMenuTree() []PermissionConfigItem {
 	}
 
 	for _, c := range p.configData {
-		dfs(c)
+		copyItem := dfs(c)
+		if copyItem.Spec != "" {
+			answer = append(answer, copyItem)
+		}
 	}
 
 	return answer
