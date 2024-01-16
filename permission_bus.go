@@ -15,12 +15,12 @@ type PermissionConfigItem struct {
 	Children []PermissionConfigItem `json:"children"`
 }
 
-type permissionBus struct {
+type PermissionBus struct {
 	configData []PermissionConfigItem
 }
 
-func Load(filePath string) (*permissionBus, error) {
-	pb := new(permissionBus)
+func Load(filePath string) (*PermissionBus, error) {
+	pb := new(PermissionBus)
 	conf := new([]PermissionConfigItem)
 
 	fileContent, err := ioutil.ReadFile(filePath)
@@ -127,7 +127,7 @@ func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 	return err
 }
 
-func (p *permissionBus) GetMenuTree() []PermissionConfigItem {
+func (p *PermissionBus) GetMenuTree() []PermissionConfigItem {
 	answer := make([]PermissionConfigItem, 0)
 
 	var dfs func(c PermissionConfigItem) PermissionConfigItem
@@ -163,6 +163,6 @@ func (p *permissionBus) GetMenuTree() []PermissionConfigItem {
 	return answer
 }
 
-func (p *permissionBus) GetApiTree() []PermissionConfigItem {
+func (p *PermissionBus) GetApiTree() []PermissionConfigItem {
 	return p.configData
 }
