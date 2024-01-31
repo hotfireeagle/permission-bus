@@ -8,11 +8,13 @@ import (
 
 const menuType = "menu"
 const apiType = "api"
+const apiGroupType = "apiGroup"
 
 type PermissionConfigItem struct {
 	Spec     string                 `json:"spec"`
 	Name     string                 `json:"name"`
 	Children []PermissionConfigItem `json:"children"`
+	Group    []string               `json:"-"`
 }
 
 type PermissionBus struct {
@@ -43,19 +45,20 @@ func Load(filePath string) (*PermissionBus, error) {
 		return pb, err
 	}
 
+	err = checkApiGroupNotContainMenu(*conf)
+	if err != nil {
+		return pb, err
+	}
+
 	pb.configData = *conf
 	return pb, nil
 }
 
-// 检查配置数据的格式:
-// 1、所有的同等类型数据中，不允许出现一样的name
-// 2、type是否正确
+// 检查配置数据的格式: 不允许出现name一样的数据
 // 格式如果正确的话，那么将会返回true；如果错误的话，那么将会返回false
 func checkNameNoRepeat(confs []PermissionConfigItem) error {
 	var err error
-
-	existApiNameMap := make(map[string]bool)
-	existMenuNameMap := make(map[string]bool)
+	nameMap := make(map[string]bool)
 
 	var dfs func(c PermissionConfigItem)
 	dfs = func(c PermissionConfigItem) {
@@ -64,27 +67,14 @@ func checkNameNoRepeat(confs []PermissionConfigItem) error {
 			return
 		}
 
-		if c.Spec == menuType {
-			curMenu := c.Name
-			if existMenuNameMap[curMenu] {
-				err = errors.New(curMenu + " repeat")
-				return
-			}
-			existMenuNameMap[curMenu] = true
-		} else if c.Spec == apiType {
-			curApi := c.Name
-			if existApiNameMap[curApi] {
-				err = errors.New(curApi + " repeat")
-				return
-			}
-			existApiNameMap[curApi] = true
-		} else {
-			err = errors.New("unsupport Spec: " + c.Spec)
+		curName := c.Name
+		if nameMap[curName] {
+			err = errors.New(curName + " repeat")
 			return
 		}
+		nameMap[curName] = true
 
 		child := c.Children
-
 		for _, item := range child {
 			dfs(item)
 		}
@@ -97,8 +87,7 @@ func checkNameNoRepeat(confs []PermissionConfigItem) error {
 	return err
 }
 
-// 检查配置数据：api的type下面不允许出现children
-// 因为在获取菜单树的时候，需要确定这块的规则
+// 检查配置数据：type为api时不允许出现children
 func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 	var err error
 
@@ -127,12 +116,18 @@ func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 	return err
 }
 
+// 检查配置数据：type为apiGroup时，它的group里面不允许出现菜单
+func checkApiGroupNotContainMenu(confs []PermissionConfigItem) error {
+	// TODO:
+	return nil
+}
+
 func (p *PermissionBus) GetMenuTree() []PermissionConfigItem {
 	answer := make([]PermissionConfigItem, 0)
 
 	var dfs func(c PermissionConfigItem) PermissionConfigItem
 	dfs = func(c PermissionConfigItem) PermissionConfigItem {
-		if c.Spec == apiType {
+		if c.Spec != menuType {
 			return PermissionConfigItem{}
 		}
 
@@ -165,4 +160,63 @@ func (p *PermissionBus) GetMenuTree() []PermissionConfigItem {
 
 func (p *PermissionBus) GetApiTree() []PermissionConfigItem {
 	return p.configData
+}
+
+// 只获取api级别，遇到apiGroup对其展开得到api，遇到menu过滤掉
+func (p *PermissionBus) ExpandApiGroup(menuOrApiOrApiGroupList []string) []string {
+	answer := make([]string, 0)
+	flat := p.flatForExpandApiGroup()
+
+	for _, name := range menuOrApiOrApiGroupList {
+		item := flat[name]
+		if item.Spec == apiType {
+			answer = append(answer, name)
+		} else if item.Spec == apiGroupType {
+			for _, api := range item.Group {
+				answer = append(answer, api)
+			}
+		}
+	}
+
+	return removeDuplicate(answer)
+}
+
+func (p *PermissionBus) GetMenuByLeaf() {
+
+}
+
+func (p *PermissionBus) flatForExpandApiGroup() map[string]PermissionConfigItem {
+	answer := make(map[string]PermissionConfigItem)
+
+	var dfs func(item PermissionConfigItem)
+	dfs = func(conf PermissionConfigItem) {
+		item := PermissionConfigItem{
+			Name:  conf.Name,
+			Spec:  conf.Spec,
+			Group: conf.Group,
+		}
+		answer[conf.Name] = item
+		for _, pci := range conf.Children {
+			dfs(pci)
+		}
+	}
+
+	for _, conf := range p.configData {
+		// 由于目前只用于ExpandApiGroup，所以不希望copy children数据，children数据有点多（极端场景占内存），且用不上
+		dfs(conf)
+	}
+
+	return answer
+}
+
+func removeDuplicate(cur []string) []string {
+	m := make(map[string]bool)
+	for _, n := range cur {
+		m[n] = true
+	}
+	answer := make([]string, 0)
+	for k := range m {
+		answer = append(answer, k)
+	}
+	return answer
 }
