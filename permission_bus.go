@@ -14,7 +14,7 @@ type PermissionConfigItem struct {
 	Spec     string                 `json:"spec"`
 	Name     string                 `json:"name"`
 	Children []PermissionConfigItem `json:"children"`
-	Group    []string               `json:"-"`
+	Group    []string               `json:"group"`
 }
 
 type PermissionBus struct {
@@ -45,7 +45,12 @@ func Load(filePath string) (*PermissionBus, error) {
 		return pb, err
 	}
 
-	err = checkApiGroupNotContainMenu(*conf)
+	err = checkApiGroupMustHasGroupAndMustNoChildren(*conf)
+	if err != nil {
+		return pb, err
+	}
+
+	err = checkApiGroupNotContainMenuOrApiGroup(*conf)
 	if err != nil {
 		return pb, err
 	}
@@ -117,9 +122,80 @@ func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 }
 
 // 检查配置数据：type为apiGroup时，它的group里面不允许出现菜单
-func checkApiGroupNotContainMenu(confs []PermissionConfigItem) error {
-	// TODO:
-	return nil
+func checkApiGroupNotContainMenuOrApiGroup(confs []PermissionConfigItem) error {
+	menuOrApiGroupMap := make(map[string]bool)
+
+	var dfsFindMenu func(p PermissionConfigItem)
+	dfsFindMenu = func(p PermissionConfigItem) {
+		if p.Spec == menuType || p.Spec == apiGroupType {
+			menuOrApiGroupMap[p.Name] = true
+		}
+
+		for _, c := range p.Children {
+			dfsFindMenu(c)
+		}
+	}
+	for _, conf := range confs {
+		dfsFindMenu(conf)
+	}
+
+	var err error
+	var dfsCheck func(p PermissionConfigItem)
+	dfsCheck = func(p PermissionConfigItem) {
+		if err != nil {
+			return
+		}
+		if p.Spec == apiGroupType {
+			for _, name := range p.Group {
+				if menuOrApiGroupMap[name] {
+					err = errors.New(name + "出现在" + p.Name + ".Group中是不合法的")
+					return
+				}
+			}
+		}
+		for _, c := range p.Children {
+			dfsCheck(c)
+		}
+	}
+	for _, co := range confs {
+		dfsCheck(co)
+	}
+
+	return err
+}
+
+// 检查配置数据：
+// 1、apiGroup类型的数据必须存在有效Group配置项
+// 2、apiGroup类型的数据必须不存在Children配置
+func checkApiGroupMustHasGroupAndMustNoChildren(confs []PermissionConfigItem) error {
+	var err error
+
+	var dfsCheck func(p PermissionConfigItem)
+	dfsCheck = func(p PermissionConfigItem) {
+		if err != nil {
+			return
+		}
+		if p.Spec == apiGroupType {
+			if len(p.Children) != 0 {
+				err = errors.New(p.Name + "是apiGroup类型，不允许配置children")
+				return
+			}
+
+			if len(p.Group) == 0 {
+				err = errors.New(p.Name + "是apiGroup类型，必须存在Group")
+			}
+		}
+
+		for _, c := range p.Children {
+			dfsCheck(c)
+		}
+	}
+
+	for _, c := range confs {
+		dfsCheck(c)
+	}
+
+	return err
 }
 
 func (p *PermissionBus) GetMenuTree() []PermissionConfigItem {
@@ -181,8 +257,73 @@ func (p *PermissionBus) ExpandApiGroup(menuOrApiOrApiGroupList []string) []strin
 	return removeDuplicate(answer)
 }
 
-func (p *PermissionBus) GetMenuByLeaf() {
+// 获取叶子结点的上级路径
+func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
+	leafMap := make(map[string]bool)
+	for _, leaf := range leafs {
+		leafMap[leaf] = true
+	}
 
+	nodeChildrenMap := make(map[string]map[string]bool)
+	var dfsFind func(p PermissionConfigItem)
+	dfsFind = func(p PermissionConfigItem) {
+		name := p.Name
+		childNameList := findChildren(p)
+		for _, childName := range childNameList {
+			if nodeChildrenMap[name] == nil {
+				nodeChildrenMap[name] = make(map[string]bool)
+			}
+			nodeChildrenMap[name][childName] = true
+		}
+		for _, c := range p.Children {
+			dfsFind(c)
+		}
+	}
+	for _, n := range p.configData {
+		dfsFind(n)
+	}
+
+	answer := make([]PermissionConfigItem, 0)
+
+	var dfs func(c PermissionConfigItem) PermissionConfigItem
+	dfs = func(c PermissionConfigItem) PermissionConfigItem {
+		if len(c.Children) == 0 {
+			return PermissionConfigItem{}
+		}
+		selfChild := nodeChildrenMap[c.Name]
+		selfHasLeaf := false
+		for _, leaf := range leafs {
+			if selfChild[leaf] {
+				selfHasLeaf = true
+				break
+			}
+		}
+		if !selfHasLeaf {
+			return PermissionConfigItem{}
+		}
+		copyItem := PermissionConfigItem{
+			Name: c.Name,
+			Spec: c.Spec,
+		}
+		cChild := make([]PermissionConfigItem, 0)
+		for _, cc := range c.Children {
+			cc2 := dfs(cc)
+			if cc2.Spec != "" {
+				cChild = append(cChild, cc2)
+			}
+		}
+		copyItem.Children = cChild
+		return copyItem
+	}
+
+	for _, c := range p.configData {
+		copyItem := dfs(c)
+		if copyItem.Spec != "" {
+			answer = append(answer, copyItem)
+		}
+	}
+
+	return answer
 }
 
 func (p *PermissionBus) flatForExpandApiGroup() map[string]PermissionConfigItem {
@@ -218,5 +359,19 @@ func removeDuplicate(cur []string) []string {
 	for k := range m {
 		answer = append(answer, k)
 	}
+	return answer
+}
+
+func findChildren(p PermissionConfigItem) []string {
+	answer := make([]string, 0)
+
+	var dfs func(p PermissionConfigItem)
+	dfs = func(p PermissionConfigItem) {
+		for _, c := range p.Children {
+			answer = append(answer, c.Name)
+			dfs(c)
+		}
+	}
+
 	return answer
 }

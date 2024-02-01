@@ -1,0 +1,24 @@
+[
+  {
+    "spec": "menu",
+    "name": "权限管理",
+    "children": [
+      {
+        "spec": "apiGroup",
+        "name": "角色管理",
+        "group": ["编辑角色功能"]
+      }
+    ]
+  },
+  {
+    "spec": "menu",
+    "name": "角色管理",
+    "children": [
+      {
+        "spec": "apiGroup",
+        "name": "编辑角色功能",
+        "group": ["nnn"]
+      }
+    ]
+  }
+]

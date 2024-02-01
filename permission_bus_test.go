@@ -91,3 +91,43 @@ func TestGetMenu(t *testing.T) {
 		check(item)
 	}
 }
+
+func TestApiGroupMustHasGroup(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errApiGroupNoGroup.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestApiGroupMustHasGroup should accurs error")
+	}
+}
+
+func TestApiGroupCantHasChild(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errApiGroupHasChildren.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestApiGroupCantHasChild should accurs error")
+	}
+}
+
+func TestApiGroupCantContainMenu(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errApiGroupHasMenuGroupChild.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestApiGroupCantContainMenu should accurs error")
+	}
+}
+
+func TestApiGroupCantContainApiGroup(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errApiGroupHasApiGroupGroupChild.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestApiGroupCantContainApiGroup should accurs error")
+	}
+}

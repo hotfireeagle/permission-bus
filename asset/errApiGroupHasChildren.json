@@ -1,0 +1,31 @@
+[
+  {
+    "spec": "menu",
+    "name": "权限管理",
+    "children": [
+      {
+        "spec": "apiGroup",
+        "name": "角色管理",
+        "children": [
+          {
+            "spec": "api",
+            "name": "新增角色"
+          },
+          {
+            "spec": "api",
+            "name": "获取角色列表"
+          },
+          {
+            "spec": "api",
+            "name": "删除角色列表"
+          },
+          {
+            "spec": "api",
+            "name": "更新角色列表"
+          }
+        ],
+        "group": ["ooo"]
+      }
+    ]
+  }
+]

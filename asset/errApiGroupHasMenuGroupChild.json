@@ -1,0 +1,13 @@
+[
+  {
+    "spec": "menu",
+    "name": "权限管理",
+    "children": [
+      {
+        "spec": "apiGroup",
+        "name": "角色管理",
+        "group": ["权限管理"]
+      }
+    ]
+  }
+]
