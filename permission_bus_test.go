@@ -148,20 +148,20 @@ func TestGetMenuByLeaf(t *testing.T) {
 	}
 
 	menus := p.GetMenuByLeaf(selectedApis)
-
-	if menus[0].Name != "权限管理" {
-		t.Errorf("期望0是权限管理")
+	answer := []string{
+		"权限管理",
+		"角色管理",
+		"数据管理",
+		"财务数据",
 	}
 
-	if menus[0].Children[0].Name != "角色管理" {
-		t.Errorf("期望0.0是角色管理")
+	if len(menus) != len(answer) {
+		t.Errorf("error")
 	}
 
-	if menus[1].Name != "数据管理" {
-		t.Errorf("期望1是数据管理")
-	}
-
-	if menus[1].Children[0].Name != "财务数据" {
-		t.Errorf("期望1.0是数据管理")
+	for idx, v := range answer {
+		if v != menus[idx] {
+			t.Errorf("wrong")
+		}
 	}
 }

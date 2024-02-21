@@ -261,12 +261,15 @@ func (p *PermissionBus) ExpandApiGroup(menuOrApiOrApiGroupList []string) []strin
 }
 
 // 获取叶子结点的上级路径
-func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
+func (p *PermissionBus) GetMenuByLeaf(leafs []string) []string {
 	// 记录一个节点的子孙后代结点。第一层key是自己的name，第二层key是后代的name
 	nodeChildrenMap := make(map[string]map[string]bool)
 	var dfsFind func(p PermissionConfigItem)
 	// 遍历权限树中的所有权限
 	dfsFind = func(p PermissionConfigItem) {
+		if p.Spec != menuType {
+			return
+		}
 		name := p.Name
 		childNameList := findChildren(p) // 自身的子孙节点
 		for _, childName := range childNameList {
@@ -283,48 +286,23 @@ func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
 		dfsFind(n)
 	}
 
-	answer := make([]PermissionConfigItem, 0) // 最终结果
-
-	var dfs func(c PermissionConfigItem) PermissionConfigItem
-	dfs = func(c PermissionConfigItem) PermissionConfigItem {
-		if len(c.Children) == 0 {
-			return PermissionConfigItem{}
-		}
-		selfChild := nodeChildrenMap[c.Name] // 自身的子孙节点
-		selfHasLeaf := false                 // 自己的子孙节点中是否存在被选中的情况
-		for _, leaf := range leafs {
-			if selfChild[leaf] {
-				selfHasLeaf = true
-				break
+	checkSelfHouDaiHasSelect := func(self map[string]bool) bool {
+		for _, p := range leafs {
+			if self[p] {
+				return true
 			}
 		}
-		if !selfHasLeaf {
-			return PermissionConfigItem{}
-		}
-		// 自己是选中的，但是并不意味着自己的下一层后代也是选中的，所以进行判断处理
-		copyItem := PermissionConfigItem{
-			Name: c.Name,
-			Spec: c.Spec,
-		}
-		cChild := make([]PermissionConfigItem, 0)
-		for _, cc := range c.Children {
-			cc2 := dfs(cc)
-			if cc2.Spec != "" {
-				cChild = append(cChild, cc2)
-			}
-		}
-		copyItem.Children = cChild
-		return copyItem
+		return false
 	}
 
-	for _, c := range p.configData {
-		copyItem := dfs(c)
-		if copyItem.Spec != "" {
-			answer = append(answer, copyItem)
+	permissionNameAnswer := make([]string, 0)
+	for permissNameKey, permissionChildObj := range nodeChildrenMap {
+		if checkSelfHouDaiHasSelect(permissionChildObj) {
+			permissionNameAnswer = append(permissionNameAnswer, permissNameKey)
 		}
 	}
 
-	return answer
+	return permissionNameAnswer
 }
 
 func (p *PermissionBus) flatForExpandApiGroup() map[string]PermissionConfigItem {
