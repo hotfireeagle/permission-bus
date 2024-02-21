@@ -1,0 +1,16 @@
+[
+  {
+    "spec": "menu",
+    "name": "权限管理",
+    "children": [
+      {
+        "spec": "api",
+        "name": "获取权限列表接口"
+      }
+    ]
+  },
+  {
+    "spec": "menu",
+    "name": "数据管理"
+  }
+]

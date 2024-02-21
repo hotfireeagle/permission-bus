@@ -92,9 +92,22 @@ func checkNameNoRepeat(confs []PermissionConfigItem) error {
 	return err
 }
 
-// 检查配置数据：type为api时不允许出现children
+// 检查配置数据：
+// 1、type为api时不允许出现children
+// 2、menu必须存在有效children
 func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 	var err error
+
+	checkMenuHasOtherSibling := func(list []PermissionConfigItem) bool {
+		m := make(map[string]bool)
+		for _, p := range list {
+			m[p.Spec] = true
+		}
+		if m[menuType] {
+			return len(m) > 1
+		}
+		return false
+	}
 
 	var dfs func(c PermissionConfigItem)
 	dfs = func(c PermissionConfigItem) {
@@ -109,9 +122,25 @@ func checkApiHasNoChildren(confs []PermissionConfigItem) error {
 			}
 		}
 
+		if c.Spec == menuType {
+			if len(c.Children) == 0 {
+				err = errors.New(c.Name + "wrong format, we can't support the menu permission has empty children")
+				return
+			}
+		}
+
+		if checkMenuHasOtherSibling(c.Children) {
+			err = errors.New("menu just can has menu sibling in " + c.Children[0].Name)
+			return
+		}
+
 		for _, confItem := range c.Children {
 			dfs(confItem)
 		}
+	}
+
+	if checkMenuHasOtherSibling(confs) {
+		return errors.New("menu just can has menu sibling in " + confs[0].Name)
 	}
 
 	for _, conf := range confs {

@@ -1,0 +1,22 @@
+[
+  {
+    "spec": "menu",
+    "name": "权限管理",
+    "children": [
+      {
+        "spec": "menu",
+        "name": "角色管理",
+        "children": [
+          {
+            "spec": "api",
+            "name": "新增角色"
+          }
+        ]
+      },
+      {
+        "spec": "api",
+        "name": "获取角色列表"
+      }
+    ]
+  }
+]

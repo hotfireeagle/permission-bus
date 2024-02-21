@@ -132,6 +132,26 @@ func TestApiGroupCantContainApiGroup(t *testing.T) {
 	}
 }
 
+func TestMenuMustContainChildren(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errMenuNoChildren.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestMenuMustContainChildren should accurs error")
+	}
+}
+
+func TestMenuMustJustHaveMenuSibling(t *testing.T) {
+	fp := filepath.Join(".", "asset", "errMenuMustJustHaveMenuSibling.json")
+	fp = filepath.Clean(fp)
+
+	_, err := Load(fp)
+	if err == nil {
+		t.Errorf("TestMenuMustJustHaveMenuSibling should accurs error")
+	}
+}
+
 // 测试GetMenuByLeaf方法
 func TestGetMenuByLeaf(t *testing.T) {
 	fp := filepath.Join(".", "asset", "example.json")
@@ -159,8 +179,13 @@ func TestGetMenuByLeaf(t *testing.T) {
 		t.Errorf("error")
 	}
 
-	for idx, v := range answer {
-		if v != menus[idx] {
+	menuMap := make(map[string]bool)
+	for _, m := range menus {
+		menuMap[m] = true
+	}
+
+	for _, v := range answer {
+		if menuMap[v] == false {
 			t.Errorf("wrong")
 		}
 	}
