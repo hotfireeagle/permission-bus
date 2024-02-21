@@ -34,6 +34,18 @@
   },
   {
     "spec": "menu",
-    "name": "数据管理"
+    "name": "数据管理",
+    "children": [
+      {
+        "spec": "menu",
+        "name": "财务数据",
+        "children": [
+          {
+            "spec": "api",
+            "name": "获取财务数据列表"
+          }
+        ]
+      }
+    ]
   }
 ]

@@ -262,16 +262,13 @@ func (p *PermissionBus) ExpandApiGroup(menuOrApiOrApiGroupList []string) []strin
 
 // 获取叶子结点的上级路径
 func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
-	leafMap := make(map[string]bool)
-	for _, leaf := range leafs {
-		leafMap[leaf] = true
-	}
-
+	// 记录一个节点的子孙后代结点。第一层key是自己的name，第二层key是后代的name
 	nodeChildrenMap := make(map[string]map[string]bool)
 	var dfsFind func(p PermissionConfigItem)
+	// 遍历权限树中的所有权限
 	dfsFind = func(p PermissionConfigItem) {
 		name := p.Name
-		childNameList := findChildren(p)
+		childNameList := findChildren(p) // 自身的子孙节点
 		for _, childName := range childNameList {
 			if nodeChildrenMap[name] == nil {
 				nodeChildrenMap[name] = make(map[string]bool)
@@ -286,15 +283,15 @@ func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
 		dfsFind(n)
 	}
 
-	answer := make([]PermissionConfigItem, 0)
+	answer := make([]PermissionConfigItem, 0) // 最终结果
 
 	var dfs func(c PermissionConfigItem) PermissionConfigItem
 	dfs = func(c PermissionConfigItem) PermissionConfigItem {
 		if len(c.Children) == 0 {
 			return PermissionConfigItem{}
 		}
-		selfChild := nodeChildrenMap[c.Name]
-		selfHasLeaf := false
+		selfChild := nodeChildrenMap[c.Name] // 自身的子孙节点
+		selfHasLeaf := false                 // 自己的子孙节点中是否存在被选中的情况
 		for _, leaf := range leafs {
 			if selfChild[leaf] {
 				selfHasLeaf = true
@@ -304,6 +301,7 @@ func (p *PermissionBus) GetMenuByLeaf(leafs []string) []PermissionConfigItem {
 		if !selfHasLeaf {
 			return PermissionConfigItem{}
 		}
+		// 自己是选中的，但是并不意味着自己的下一层后代也是选中的，所以进行判断处理
 		copyItem := PermissionConfigItem{
 			Name: c.Name,
 			Spec: c.Spec,
@@ -365,6 +363,7 @@ func removeDuplicate(cur []string) []string {
 	return answer
 }
 
+// 找自己的后代结点。注：不仅仅只是子节点，还包括孙节点
 func findChildren(p PermissionConfigItem) []string {
 	answer := make([]string, 0)
 
@@ -375,6 +374,7 @@ func findChildren(p PermissionConfigItem) []string {
 			dfs(c)
 		}
 	}
+	dfs(p)
 
 	return answer
 }

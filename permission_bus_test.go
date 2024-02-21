@@ -131,3 +131,37 @@ func TestApiGroupCantContainApiGroup(t *testing.T) {
 		t.Errorf("TestApiGroupCantContainApiGroup should accurs error")
 	}
 }
+
+// 测试GetMenuByLeaf方法
+func TestGetMenuByLeaf(t *testing.T) {
+	fp := filepath.Join(".", "asset", "example.json")
+	fp = filepath.Clean(fp)
+
+	p, err := Load(fp)
+	if err != nil {
+		t.Errorf("TestGetMenuByLeaf should not return error")
+	}
+
+	selectedApis := []string{
+		"编辑角色功能",
+		"获取财务数据列表",
+	}
+
+	menus := p.GetMenuByLeaf(selectedApis)
+
+	if menus[0].Name != "权限管理" {
+		t.Errorf("期望0是权限管理")
+	}
+
+	if menus[0].Children[0].Name != "角色管理" {
+		t.Errorf("期望0.0是角色管理")
+	}
+
+	if menus[1].Name != "数据管理" {
+		t.Errorf("期望1是数据管理")
+	}
+
+	if menus[1].Children[0].Name != "财务数据" {
+		t.Errorf("期望1.0是数据管理")
+	}
+}
