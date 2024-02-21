@@ -248,6 +248,9 @@ func (p *PermissionBus) ExpandApiGroup(menuOrApiOrApiGroupList []string) []strin
 		if item.Spec == apiType {
 			answer = append(answer, name)
 		} else if item.Spec == apiGroupType {
+			// apiGroup的名称也应该加入进去，否则前端在显示选中效果的时候就不好处理
+			// 同时由于下方存在去重的处理，也不需要担心同一个权限重复添加的情况
+			answer = append(answer, name)
 			for _, api := range item.Group {
 				answer = append(answer, api)
 			}
