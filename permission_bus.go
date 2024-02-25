@@ -334,6 +334,53 @@ func (p *PermissionBus) GetMenuByLeaf(leafs []string) []string {
 	return permissionNameAnswer
 }
 
+func (p *PermissionBus) PlainGetAllApi() []string {
+	apis := make([]string, 0)
+	var dfs func(p PermissionConfigItem)
+	dfs = func(p PermissionConfigItem) {
+		if p.Spec == apiType {
+			apis = append(apis, p.Name)
+			return
+		}
+
+		if p.Spec == apiGroupType {
+			for _, s := range p.Group {
+				apis = append(apis, s)
+			}
+			return
+		}
+
+		if len(p.Children) != 0 {
+			for _, pp := range p.Children {
+				dfs(pp)
+			}
+		}
+	}
+	for _, p := range p.configData {
+		dfs(p)
+	}
+	return removeDuplicate(apis)
+}
+
+func (p *PermissionBus) PlainGetAllMenu() []string {
+	menus := make([]string, 0)
+	var dfs func(p PermissionConfigItem)
+	dfs = func(p PermissionConfigItem) {
+		if p.Spec == menuType {
+			menus = append(menus, p.Name)
+		}
+		if len(p.Children) != 0 {
+			for _, pp := range p.Children {
+				dfs(pp)
+			}
+		}
+	}
+	for _, p := range p.configData {
+		dfs(p)
+	}
+	return removeDuplicate(menus)
+}
+
 func (p *PermissionBus) flatForExpandApiGroup() map[string]PermissionConfigItem {
 	answer := make(map[string]PermissionConfigItem)
 
